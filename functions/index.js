@@ -2,21 +2,22 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const cors = require('cors')({origin: true});
 const app = require('express')();
-const auth = require('./auth');
-const database = require('./database');
 
 admin.initializeApp(functions.config().firebase);
-
-exports.helloWorld = functions.https.onRequest((req, res) => {
- res.send("Hello from Firebase!");
-});
+const embedRef = admin.database().ref('embeds');
 
 app.use(cors);
-app.use(auth.verifyIdToken);
 
-app.get('/auth', functions.https.onRequest((req, res) => {
-  database.writeUser(req.user.user_id);
-  res.send(req.user);
+app.get('/:embedId', functions.https.onRequest((req, res) => {
+  embedRef.child(req.params.embedId).once('value', chart => {
+    const data = chart.val();
+    if (data) {
+      res.json(data);
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  });
 }));
 
-exports.app = functions.https.onRequest(app);
+exports.embed = functions.https.onRequest(app);
